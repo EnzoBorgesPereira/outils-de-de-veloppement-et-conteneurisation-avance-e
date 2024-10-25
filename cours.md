@@ -66,3 +66,45 @@ services:
 ```
 
 ## Introduction à Kubernetes
+
+Créer un cluster.
+
+```bash
+minikube start
+minikube dashboard
+kubectl run web-server --image=nginx:1.27-bookworm
+expose pod web-server --port=80
+kubectl get pods
+kubectl get services
+kubectl port-forward service/web-server 8000:80
+kubectl applu -f web-server.yaml
+```
+
+Dans `web-server.yaml`, permet de créer un pod sans faire une grand commande CLI. C'est un déclaration de ressources.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+    name: web-server
+    label:
+        app: web-server
+spec:
+    containers:
+        - name: nginx
+          image: nginx:1.27-bookworm
+          ports:
+            - containerPort: 80
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+    name: web-server
+spec:
+    selector:
+        app: web-server
+    ports:
+        - port: 80
+          targetPort: 80
+```
