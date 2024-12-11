@@ -77,7 +77,7 @@ expose pod web-server --port=80
 kubectl get pods
 kubectl get services
 kubectl port-forward service/web-server 8000:80
-kubectl applu -f web-server.yaml
+kubectl apply -f web-server.yaml
 ```
 
 Dans `web-server.yaml`, permet de créer un pod sans faire une grand commande CLI. C'est un déclaration de ressources.
