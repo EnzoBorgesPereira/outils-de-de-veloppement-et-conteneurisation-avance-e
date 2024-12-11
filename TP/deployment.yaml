@@ -7,8 +7,17 @@ spec:
     app: hosty
   type: LoadBalancer
   ports:
-    - port: 8000
+    - port: 8080
       targetPort: 3000
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-server-config
+data:
+  RANDOM_BACKGROUND_COLOR: "true"
 
 ---
 
@@ -26,7 +35,7 @@ spec:
   template:
     metadata:
       labels:
-        app: hosty
+        app: hosty     
     spec:
       containers:
       - name: hosty-container
@@ -36,12 +45,3 @@ spec:
         envFrom:
         - configMapRef:
             name: web-server-config
-
----
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: web-server-config
-data:
-  RANDOM_BACKGROUND_COLOR: "true"
