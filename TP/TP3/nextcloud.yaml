@@ -1,0 +1,232 @@
+########################################
+# Variables env
+########################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nextcloud-env
+data:
+  MAIL_DOMAIN: nextcloud.com
+  MAIL_FROM_ADDRESS: no-reply
+
+  POSTGRES_DB: nextcloud
+  POSTGRES_HOST: nextcloud-database
+  POSTGRES_PASSWORD: secret
+  POSTGRES_USER: nextcloud
+
+  REDIS_HOST: nextcloud-redis
+  REDIS_HOST_PORT: "6379"
+
+  SMTP_AUTHTYPE: PLAIN
+  SMTP_HOST: nextcloud-mail-server
+  SMTP_PORT: "1025"
+
+---
+
+########################################
+# Deployement Nextcloud
+########################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud-deployment
+  labels:
+    app: nextcloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nextcloud
+  template:
+    metadata:
+      labels:
+        app: nextcloud
+    spec:
+      containers:
+      - name: nextcloud
+        image: nextcloud:30-apache
+        envFrom:
+        - configMapRef:
+            name: nextcloud-env
+        ports:
+        - containerPort: 80
+
+---
+########################################
+# Service Nextcloud
+########################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextcloud-service
+spec:
+  selector:
+    app: nextcloud
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
+      protocol: TCP
+
+---
+
+########################################
+# Deployement PostgreSQL
+########################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud-database
+  labels:
+    app: nextcloud-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nextcloud-database
+  template:
+    metadata:
+      labels:
+        app: nextcloud-database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:17-bookworm
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: nextcloud-env
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: nextcloud-env
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: nextcloud-env
+              key: POSTGRES_PASSWORD
+        ports:
+        - containerPort: 5432
+
+---
+
+########################################
+# Service PostgreSQL
+########################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextcloud-database
+spec:
+  selector:
+    app: nextcloud-database
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+
+########################################
+# Deployement Redis
+########################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud-redis
+  labels:
+    app: nextcloud-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nextcloud-redis
+  template:
+    metadata:
+      labels:
+        app: nextcloud-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.4.1-bookworm
+        env:
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: nextcloud-env
+              key: REDIS_HOST
+        - name: REDIS_HOST_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: nextcloud-env
+              key: REDIS_HOST_PORT
+        ports:
+        - containerPort: 6379
+
+---
+
+########################################
+# Service Redis
+########################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextcloud-redis
+spec:
+  selector:
+    app: nextcloud-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+
+---
+
+########################################
+# Deployement SMTP (Maildev)
+########################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud-mail-server
+  labels:
+    app: nextcloud-mail-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nextcloud-mail-server
+  template:
+    metadata:
+      labels:
+        app: nextcloud-mail-server
+    spec:
+      containers:
+      - name: maildev
+        image: maildev/maildev:latest
+        ports:
+          - containerPort: 1025
+          - containerPort: 1080
+
+---
+
+########################################
+# Service SMTP (Maildev)
+########################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextcloud-mail-server
+spec:
+  selector:
+    app: nextcloud-mail-server
+  ports:
+    - name: smtp
+      port: 1025
+      targetPort: 1025
+    - name: web
+      port: 1080
+      targetPort: 1080
+
